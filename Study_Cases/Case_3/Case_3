@@ -1,0 +1,8 @@
+Project: Log Reader, Parser, and IP counter to make decisions
+
+Given a nginx log, this code reads it and generates a parsed output to write into Excel or DB.
+Counts the amount of times an IP repeats and store them in .txt files
+With a new execution, the code picks up from the last line read and reads up to the latest line. If the last line is not found because of log rotation, 
+ it searches for the old log, reads it till the end, and also reads the new log.
+Then compares the lastest execution with the current execution and gather insights on growth and historical maximum for decision making
+
