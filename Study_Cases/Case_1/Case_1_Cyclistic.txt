@@ -1,0 +1,29 @@
+CREATE TABLE cyclistic (
+ride_id VARCHAR(50) PRIMARY KEY NOT NULL,
+rideable_type VARCHAR(50),
+started_at DATETIME,
+ended_at DATETIME,
+start_station_name VARCHAR(200),
+start_station_id VARCHAR(50),
+end_station_name VARCHAR(200),
+end_station_id VARCHAR(50),
+start_lat FLOAT,
+start_lng FLOAT,
+end_lat FLOAT,
+end_lng FLOAT,
+member_casual VARCHAR(50)
+);
+
+LOAD DATA INFILE 'PATH/202204-divvy-tripdata.csv'
+INTO TABLE cyclistic
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS
+(ride_id,rideable_type,started_at,ended_at,start_station_name,start_station_id,end_s
+tation_name,end_station_id,@start_lat,@start_lng,@end_lat,@end_lng,member_cas
+ual)
+SET
+start_lat = NULLIF(@start_lat,''),
+start_lng = NULLIF(@start_lng,''),
+end_lat = NULLIF(@end_lat,''),
+end_lng = NULLIF(@end_lng,'')
