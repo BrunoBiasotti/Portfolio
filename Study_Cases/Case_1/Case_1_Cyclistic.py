@@ -10,11 +10,19 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
 
-asd=[]
-qwe=[]
-asd2=[]
-qwe2=[]
+#3 paths for 3 analysis results. These Excel files are the Tableau Input
+path1 = "C:/Users/elbia/Desktop/Estudios/data analytics/Case_1_Cyclist/analysis1.xlsx"
+path2 = "C:/Users/elbia/Desktop/Estudios/data analytics/Case_1_Cyclist/analysis2.xlsx"
+path3 = "C:/Users/elbia/Desktop/Estudios/data analytics/Case_1_Cyclist/analysis3.xlsx"
 
+
+AVG_1=[]
+Day_1=[]
+AVG_2=[]
+Day_2=[]
+
+
+#SQL connnection and query
 cnx = sql.connect(user='root', password='zxc123',
                               host='localhost',
                               database='case_1_cyclistic')
@@ -30,72 +38,88 @@ df = pd.read_sql(query, cnx)
 
 
 cnx.close()
+#I close the connection once I get all the data required into a DataFrame
 
 
+""" CSV entry if required 
+#pathDB = "C:/Users/elbia/Desktop/Estudios/data analytics/Case_1_Cyclist/DB/202204-divvy-tripdata.csv"
+#df = pd.read_csv(pathDB)
+"""
 
-print(df)
+#Transform the date into datetime format
+df["ended_at"] = pd.to_datetime(df["ended_at"])
+df["started_at"] = pd.to_datetime(df["started_at"])
 
+#Obtain ride length
 df["ride_length"] = df["ended_at"] - df["started_at"]
 
-print(df["ride_length"])
 
+#Obtain the weekday: 0 -> Monday; 6 -> Sunday
 df["weekday"] = df["started_at"].dt.weekday
 
-#0 Monday, 6 Sunday
-
-print(df)
-
+#Create a DF with these columns
 dfweekday = df[["started_at","weekday"]]
-print(dfweekday)
+
+#Separate casual and member riders
+dfcasual = df[df.member_casual == "casual"]
+dfmember = df[df.member_casual == "member"]
 
 
-dfcasual = df[df.member_casual == "casual\r"]
-dfmember = df[df.member_casual == "member\r"]
+#Pivot Tables for get amount of riders per type of rider
+casualpivot = dfcasual.pivot_table(columns=['weekday'], aggfunc='size')
+memberpivot = dfmember.pivot_table(columns=['weekday'], aggfunc='size')
 
-print(dfcasual)
-print(dfmember)
+#Conver to dataframe
+casualpivot = casualpivot.to_frame()
+memberpivot = memberpivot.to_frame()
 
-print(dfcasual["ride_length"].mean())
-print(dfmember["ride_length"].mean())
 
-print(dfcasual.pivot_table(columns=['weekday'], aggfunc='size'))
-print(dfmember.pivot_table(columns=['weekday'], aggfunc='size'))
-
-print("\n")
-
-#media por día
+#AVG per day
 for i in range(0,7):
-    dfcasualrange = dfcasual[dfcasual.weekday == i]
-    internalvar1 = dfcasualrange["ride_length"].mean()
-    internalvar2 = internalvar1.total_seconds()
-    asd.append(internalvar2)
-    qwe.append(dfcasualrange.duplicated(["weekday"]).sum())
-    dfmemberrange = dfmember[dfmember.weekday == i]
+    dfcasualrange = dfcasual[dfcasual.weekday == i] #filter the casual DF by day of the week
+    internalvar1 = dfcasualrange["ride_length"].mean() #obtain mean of length ride
+    internalvar2 = internalvar1.total_seconds() #transform into total seconds
+    AVG_1.append(internalvar2) #append to list
+    Day_1.append(dfcasualrange.duplicated(["weekday"]).sum()) #append the sum of data points
+    dfmemberrange = dfmember[dfmember.weekday == i] #same process for annual members
     internalvar3 = dfmemberrange["ride_length"].mean()
     internalvar4 = internalvar3.total_seconds()    
-    asd2.append(internalvar4)
-    qwe2.append(dfmemberrange.duplicated(["weekday"]).sum())
+    AVG_2.append(internalvar4)
+    Day_2.append(dfmemberrange.duplicated(["weekday"]).sum())
 
 
-
-
-print("\n")
-dic = {"average":asd,"day":qwe}
+#Create dictionaries with the lists of averages and day 
+#Casual and members % between days
+dic = {"average":AVG_1,"day":Day_1}
 dfanalysis1 = pd.DataFrame(dic,columns=["average","day"])
-print(dfanalysis1)
-
-print("\n")
-dic2 = {"average":asd2,"day":qwe2}
+dic2 = {"average":AVG_2,"day":Day_2}
 dfanalysis2 = pd.DataFrame(dic2,columns=["average","day"])
-print(dfanalysis2)
 
-print("\n")
-dic3 = {"Casual Riders":asd,"Member Riders":asd2}
+#Create dictionaries with the lists of both averages
+#Average travel time per day
+dic3 = {"Casual Riders":AVG_1,"Member Riders":AVG_2}
 dfanalysis3 = pd.DataFrame(dic3,columns=["Casual Riders","Member Riders"])
-print(dfanalysis3)
 
 
+#concat for casual and member average per day DF
+dftemp = [dfanalysis1, dfanalysis2]
+dfanalysisconcat = pd.concat(dftemp)
 
+temppivot = [casualpivot,memberpivot]
+concatpivot = pd.concat(temppivot)
+
+#list of casual and members to add to both analysis results to be able to discern rider types
+templist=["casual","casual","casual","casual","casual","casual","casual",
+          "member","member","member","member","member","member","member"]
+dfanalysisconcat["member_type"] = templist
+concatpivot["member_type"] = templist
+
+
+dfanalysis3.to_excel(path1) #Average travel time per day
+dfanalysisconcat.to_excel(path2) #Casual and members % between days
+concatpivot.to_excel(path3) #Amounts of travels registered
+
+"""Graphs for a fast analysis
 dfanalysis3.plot(kind='bar', 
                  title='Average per day',
                  xlabel=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"])
@@ -124,8 +148,7 @@ ax2.pie(dfanalysis2["day"],
 ax2.set_title("Member Riders")
 
 plt.show()
-
-
+"""
 
 
 
