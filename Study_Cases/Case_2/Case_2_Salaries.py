@@ -1,410 +1,277 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jun 16 17:05:24 2022
+Created on Wed Aug 24 15:34:33 2022
 
 @author: elbia
 """
 
+import numpy as np
 import pandas as pd
 import statistics
 import matplotlib.pyplot as plt
+import configparser
 
-pd.set_option('display.max_columns', None)
+""" Data cleaning methodology 
 
-path = "C:/Users/elbia/Desktop/Estudios/data analytics/Case_2_Salaries/Case_2_Salaries.csv"
-
-base_df = pd.read_csv(path)
-
-
-"""Code to get the job list
-
-temp = pd.DataFrame(base_df["Trabajo de"])
-
-d = temp.groupby("Trabajo de").filter(lambda x: len(x) > 10)
-
-c = d.groupby("Trabajo de").count()
-
-print(c)
-print(type(c))
-
-Architect
-BI Analyst / Data Analyst
-Business Analyst
-Consultant
-DBA
-Data Engineer
-Data Scientist
-Designer
-Developer
-HelpDesk
-Infosec
-Manager / Director
-Middleware
-Networking
-Product Manager
-Project Manager
-QA / Tester
-Recruiter / HR
-Sales / Pre-Sales
-Scrum Master
-SysAdmin / DevOps / SRE
-Technical Leader
-UX
-VP / C-Level
-"""
-
-
-""" General Insights
-
-contratos = ["Full-Time",
-             "Part-Time",
-             "Freelance"
-            ]
-profesiones = ["Architect",
-               "BI Analyst / Data Analyst",
-               "Business Analyst",
-               "Consultant",
-               "DBA",
-               "Data Engineer",
-               "Data Scientist",
-               "Designer",
-               "Developer",
-               "HelpDesk",
-               "Infosec",
-               "Manager / Director",
-               "Middleware",
-               "Networking",
-               "Product Manager",
-               "Project Manager",
-               "QA / Tester",
-               "Recruiter / HR",
-               "Sales / Pre-Sales",
-               "Scrum Master",
-               "SysAdmin / DevOps / SRE",
-               "Technical Leader",
-               "UX",
-               "VP / C-Level"
-            ]
-
-
-
-for cont in contratos:
-    graph_mean = []
-    graph_mode = []
-    graph_max = []
-    graph_min = []
-    df_FT = pd.DataFrame(base_df.loc[base_df["Tipo de contrato"] == cont])
-    for prof in profesiones:
-        df_FT2 = pd.DataFrame(df_FT.loc[df_FT["Trabajo de"] == prof])
-        df_FT_AVG = df_FT2["Salario mensual o retiro BRUTO (en tu moneda local)"]
-        AVG_list = df_FT_AVG.values.tolist()
-        AVG_list_clean = []
-        
-        for elem in AVG_list:
-            try:
-                AVG_list_clean.append(int(elem))
-            except:
-                pass
-        
-
-        
-        AVG_list_sort = [v for v in AVG_list_clean if v > 10000]
-        AVG_list_sort.sort(reverse=True)
-
-#        print(len(AVG_list_clean)-len(AVG_list_sort))
-
-        try:
-            mean_FT = statistics.mean(AVG_list_sort)
-        except:
-            mean_FT = 0
-        try:
-            mode_FT = statistics.mode(AVG_list_sort)
-        except:
-            mode_FT = 0
-        try:
-            max_FT = AVG_list_sort[0]
-        except:
-            max_FT = 0
-        try:
-            min_FT = AVG_list_sort[-1]
-        except:
-            min_FT = 0
-        
-        graph_mean.append(mean_FT)
-        graph_mode.append(mode_FT)
-        graph_max.append(max_FT)
-        graph_min.append(min_FT)
-        
-        
-            
-    print(graph_mean)
-    print(graph_mode)
-    print(graph_max)
-    print(graph_min)
-
-
+Representativeness of the sample:
+    Sample size over other factors. Don't use homogeneity to determine representativeness
+    *For salaries, leave out those elements that do not exceed 0.05% of samples over the total
     
-    
-    fig_1 = plt.figure(figsize = (20,30))
-    plt.barh(profesiones,graph_mean)
-    plt.title(cont+": Mean by Profession")
-    
-    fig_2 = plt.figure(figsize = (20,30))
-    plt.barh(profesiones,graph_mode)
-    plt.title(cont+": Mode by Profession")
-    
-    fig_3 = plt.figure(figsize = (20,30))
-    plt.barh(profesiones,graph_max)
-    plt.title(cont+": Max by Profession")
-    
-    fig_4 = plt.figure(figsize = (20,30))
-    plt.barh(profesiones,graph_min)
-    plt.title(cont+": Min by Profession")
-    
-    plt.show()
-    """
-    
+Salaries:
+    Median gross salary.
 
+Atypical values:
+    Interquartile Range Method with a coefficient of 3.5 (Q3 - Q1)
+    Eliminate those entries whose salary is less than half the minimum wage
 
-""" Code to get years
-
-d = df_dev_exp.groupby(["Años en el puesto actual"]).size()
-print(d) #get all the years of experience
-print(type(d))
-
-Años en el puesto actual DEV
-0.0     695
-0.5       2
-1.0     417
-1.2       1
-1.3       4
-1.5      20
-2.0     308
-2.5       2
-3.0     144
-4.0      83
-5.0      65
-6.0      25
-7.0      29
-8.0      15
-9.0       6
-10.0     31
-11.0      7
-12.0      7
-13.0      7
-14.0      2
-15.0     10
-16.0      1
-17.0      1
-18.0      3
-20.0      6
-22.0      1
-23.0      1
-24.0      1
-25.0      2
-33.0      1
-
-Años en el puesto actual DA
-0.0     59
-1.0     30
-1.5      1
-2.0     27
-2.5      1
-3.0      7
-4.0      5
-5.0      5
-7.0      1
-10.0     2
-20.0     1
-60.0     1
+Dollar exchange rate:
+    Average intraday price of Bloomberg and median of the value of the day of
+    the publication with a delta of 5 days
+    
+Experience:
+    Junior: from 0 to 2 years
+    Semi-Senior: from 2 years inclusive up to 5 years
+    Senior: from 5 years inclusive
 
 """
 
 
+""" First cleaning process - Data Types
+
+Confirm that the salaries are in INT, that is, they are not NULL or STR
+
+"""
 
 
-#Full-Time Developer and Data Analyst specific data
+def primera_limpieza(base_df):
+
+    uno_df_dropped = pd.DataFrame() #output DF of removed lines
+    uno_list = [] #Internal list stores index number
     
-
-years= [0.0,           
-        1.0,          
-        2.0,          
-        3.0,     
-        4.0,      
-        5.0,      
-        6.0,      
-        7.0,      
-        8.0,      
-        9.0,       
-        10.0,     
-        11.0,      
-        12.0,      
-        13.0,      
-        14.0,      
-        15.0,     
-        16.0,      
-        17.0,      
-        18.0,      
-        20.0,      
-        ]
-
-
-#Full-Time Dev
+    base_df = base_df.reset_index() 
+    uno_copia = base_df.copy() #Copy DF to iterate
     
-
-
-df_dev = pd.DataFrame(base_df.loc[(base_df["Tipo de contrato"] == "Full-Time") 
-                                  & (base_df["Trabajo de"] == "Developer")
-                                  ])
-
-#print(df_dev)
-
-df_dev_salary = pd.DataFrame(df_dev["Salario mensual o retiro BRUTO (en tu moneda local)"])
-dev_list = df_dev_salary.values.tolist()
-dev_list2 = []
-
-for elem in dev_list:
-    try:
-        dev_list2.append(int(elem[0]))
-    except:
-        pass
-
-
-
-dev_list_clean = [v for v in dev_list2 if v > 10000]
-dev_list_clean.sort(reverse=True)
-
-
-dev_AVG = statistics.mean(dev_list_clean)
-dev_mode = statistics.mode(dev_list_clean)
-dev_max = dev_list_clean[0]
-dev_min = dev_list_clean[-1]
-
-print(dev_AVG)
-print(dev_mode)
-print(dev_max)
-print(dev_min)
-
-
-df_dev_exp = pd.DataFrame(df_dev[[
-    "Salario mensual o retiro BRUTO (en tu moneda local)",
-    "Años en el puesto actual"]])
-
-
-
-years_dict_dev = {}
-
-for key in years:
-    dev_df_years = pd.DataFrame(df_dev_exp.loc[df_dev_exp["Años en el puesto actual"] == key])
-    dev_df_years_AVG = dev_df_years["Salario mensual o retiro BRUTO (en tu moneda local)"]
-    dev_years_AVG_list = dev_df_years_AVG.values.tolist()
-    dev_years_AVG_list_clean = []
-    
-    for elem in dev_years_AVG_list:
+    for index, row in uno_copia.iterrows(): 
         try:
-            dev_years_AVG_list_clean.append(int(elem))
+            (int(row['Último salario mensual  o retiro BRUTO (en tu moneda local)']) and 
+            int(row['Último salario mensual o retiro NETO (en tu moneda local)']))
         except:
+            uno_list.append(index)
+            base_df = base_df.drop(index)
+    
+    #If both values are not INT it will go to except
+    #Append the index of the row and remove it from df
+    
+    uno_df_dropped = uno_copia[uno_copia["index"].isin(uno_list)]
+    
+    #Create a DF with removed index
+    
+    return[base_df,uno_df_dropped]
+
+
+""" Second cleaning process - Outliers and IQR
+
+Remove those outliers that may interfere with the calculation of the methodology
+
+The first step is to eliminate those entries whose value is less than half of the minimum wage
+Minimum salary = 47,850 ARS for August 2022 -> limit of 23,295 ARS
+
+The second step is to eliminate according to the interquartile range with a coefficient of 3.5
+
+"""
+
+
+def iqr(iqr_df,in_col):
+    
+    iqr_list = []
+    
+    temp_list = iqr_df[in_col].tolist()
+
+    for elem in temp_list:
+        iqr_list.append(int(elem))
+
+    iqr_q75,iqr_q25 = np.percentile(iqr_list, [75,25])
+
+    iqr = iqr_q75 - iqr_q25
+
+    iqr_limit = iqr*3.5
+
+    iqr_limit_upper = iqr_q75 + iqr_limit
+    iqr_limit_lower = iqr_q25 - iqr_limit
+
+    return[iqr_limit_upper,iqr_limit_lower]
+
+def segunda_limpieza(uno_df):
+    dos_copia = uno_df.copy()
+    dos_list=[]
+    
+    for index, row in dos_copia.iterrows():
+        if int(row['Último salario mensual  o retiro BRUTO (en tu moneda local)']) > 23295:
             pass
-     
-
-    
-    try:
-        dev_years_AVG = statistics.mean(dev_years_AVG_list_clean)
-    except:
-        dev_years_AVG = 0
+        else:
+           dos_list.append(index)
+           uno_df = uno_df.drop(index)
     
     
-    years_dict_dev[key] = dev_years_AVG
-
-print(years_dict_dev)
-
-
-
-
-fig_dev = plt.figure(figsize = (15,5))
-plt.bar(*zip(*years_dict_dev.items()))
-plt.title("Full-Time Dev: AVG by years of experience")
-plt.show()
-
-
-"""
-
-
-
-#Full-Time Data Analyst
+    dos_df_dropped1 = dos_copia[dos_copia["index"].isin(dos_list)]
     
-"""
-
-df_da = pd.DataFrame(base_df.loc[(base_df["Tipo de contrato"] == "Full-Time") 
-                                  & (base_df["Trabajo de"] == "BI Analyst / Data Analyst")
-                                  ])
-
-
-
-
-df_da_salary = pd.DataFrame(df_da["Salario mensual o retiro BRUTO (en tu moneda local)"])
-da_list = df_da_salary.values.tolist()
-da_list2 = []
-
-for elem in da_list:
-    try:
-        da_list2.append(int(elem[0]))
-    except:
-        pass
-
-
-
-da_list_clean = [v for v in da_list2 if v > 10000]
-da_list_clean.sort(reverse=True)
-
-
-da_AVG = statistics.mean(da_list_clean)
-da_mode = statistics.mode(da_list_clean)
-da_max = da_list_clean[0]
-da_min = da_list_clean[-1]
-
-print(da_AVG)
-print(da_mode)
-print(da_max)
-print(da_min)
-
-
-df_da_exp = pd.DataFrame(df_da[[
-    "Salario mensual o retiro BRUTO (en tu moneda local)",
-    "Años en el puesto actual"]])
-
-
-d = df_da_exp.groupby(["Años en el puesto actual"]).size()
-print(d) #get all the years of experience
-print(type(d))
-
-years_dict_da = {}
-
-for key in years:
-    da_df_years = pd.DataFrame(df_da_exp.loc[df_da_exp["Años en el puesto actual"] == key])
-    da_df_years_AVG = da_df_years["Salario mensual o retiro BRUTO (en tu moneda local)"]
-    da_years_AVG_list = da_df_years_AVG.values.tolist()
-    da_years_AVG_list_clean = []
     
-    for elem in da_years_AVG_list:
-        try:
-            da_years_AVG_list_clean.append(int(elem))
-        except:
+    
+    #IQR
+    
+    dos_copia_iqr = uno_df.copy()
+    dos_list_iqr = []
+    
+    dos_limits = iqr(uno_df,'Último salario mensual  o retiro BRUTO (en tu moneda local)')
+    
+    dos_iqr_upper = dos_limits[0]
+    dos_iqr_lower = dos_limits[1]
+    
+    for index, row in dos_copia_iqr.iterrows():
+        if (int(row['Último salario mensual  o retiro BRUTO (en tu moneda local)']) > dos_iqr_lower and 
+            int(row['Último salario mensual  o retiro BRUTO (en tu moneda local)']) < dos_iqr_upper):
             pass
+        else:
+           dos_list_iqr.append(index)
+           uno_df = uno_df.drop(index)
+    
+    dos_df_dropped2 = dos_copia_iqr[dos_copia_iqr["index"].isin(dos_list_iqr)]
+    
+    dos_df_out = uno_df.copy()
+    
+    return(dos_df_out,dos_df_dropped1,dos_df_dropped2)
+
+
+""" Third cleaning process - Text not regulated in professions
+
+
+I do a cleaning that is not established in the methodology which only includes 
+those entries whose profession has more than 3 repetitions
+
+"""
+
+def tercera_limpieza(dos_df):
+    
+    tres_df_dropped = pd.DataFrame()
+    tres_df_out = pd.DataFrame()
+    
+    tres_df_temp = pd.DataFrame(dos_df["Trabajo de"])
+    
+    tres_filter = tres_df_temp.groupby("Trabajo de").filter(lambda x: len(x) > 3)
+    #Remove professions with less than 3 repetitions   
+    tres_count = tres_filter.groupby("Trabajo de").count()
+    
+    tres_list = tres_count.index.tolist()
+    
+    tres_df_dropped = dos_df[dos_df["Trabajo de"].isin(tres_list) == False]
+    tres_df_out = dos_df[dos_df["Trabajo de"].isin(tres_list) == True]    
+
+    return(tres_df_out,tres_df_dropped,tres_list)
+
+
+
+#Main code
+
+
+config = configparser.RawConfigParser()
+configFilePath = 'config.ini'
+config.read(configFilePath)
+
+ingresoDB = str(config.get('paths','ingresoDB'))
+salarioSTR = str(config.get('paths','salarioSTR'))
+valorAtipico = str(config.get('paths','valorAtipico'))
+valorIQR = str(config.get('paths','valorIQR'))
+profesionAtipico = str(config.get('paths','profesionAtipico'))
+pathLimpio = str(config.get('paths','pathLimpio'))
+analisis1 = str(config.get('paths','analisis1'))
+analisis2 = str(config.get('paths','analisis2'))
+
+sysarmy_df = pd.read_csv(ingresoDB)
+
+df_primero = primera_limpieza(sysarmy_df)
+
+df_sucio_1 = df_primero[1]
+
+df_segundo = segunda_limpieza(df_primero[0])
+
+df_sucio_2 = df_segundo[1]
+df_sucio_3 = df_segundo[2]
+
+df_tercero = tercera_limpieza(df_segundo[0])
+
+df_sucio_4 = df_tercero[1]
+profesiones = df_tercero[2]
+limpio = df_tercero[0]
+
+df_sucio_1.to_excel(salarioSTR)
+df_sucio_2.to_excel(valorAtipico)
+df_sucio_3.to_excel(valorIQR)
+df_sucio_4.to_excel(profesionAtipico)
+limpio.to_excel(pathLimpio)
+
+
+""""Analysis - Salary per experience and role """
+
+"""
+
+final = []
+
+for prof in profesiones:
+    
+    df_filtro = pd.DataFrame(limpio.loc[limpio["Trabajo de"] == prof])
+    df_Median = df_filtro[["Último salario mensual  o retiro BRUTO (en tu moneda local)","Años de experiencia"]]
+    
+    jr = []
+    ssr = []
+    sr = []
+    
+    for index, row in df_Median.iterrows():
+        if int(row['Años de experiencia']) < 2:
+            jr.append(int(row['Último salario mensual  o retiro BRUTO (en tu moneda local)']))
+        elif int(row['Años de experiencia']) >= 2 and int(row['Años de experiencia']) < 5:
+            ssr.append(int(row['Último salario mensual  o retiro BRUTO (en tu moneda local)']))
+        elif int(row['Años de experiencia']) >= 5:
+            sr.append(int(row['Último salario mensual  o retiro BRUTO (en tu moneda local)']))    
     
     try:
-        da_years_AVG = statistics.mean(da_years_AVG_list_clean)
+        jr_median = statistics.median(jr)
     except:
-        da_years_AVG = 0
+        jr_median = 0
+    try:
+        ssr_median = statistics.median(ssr)
+    except:
+        ssr_median = 0
+    try:
+        sr_median = statistics.median(sr)
+    except:
+        sr_median = 0
     
-#    print(years_AVG)
     
-    years_dict_da[key] = da_years_AVG
+    dic_temp_1 = {"jr":jr_median,"ssr":ssr_median,"sr":sr_median}
+    dic_temp_2 = {prof:dic_temp_1}
+    final.append(dic_temp_2)
 
-print(years_dict_da)
+"""
 
-fig_da = plt.figure(figsize = (15,5))
-plt.bar(*zip(*years_dict_da.items()))
-plt.title("Full-Time Data Analyst: AVG by years of experience")
-plt.show()
+""" Graph for a fast analysis
+
+graph_barh = pd.DataFrame()
+new_index=['sr','ssr','jr']
+
+x=0
+for elem in final: 
+    dtframe_concat = pd.DataFrame(final[x])
+    dtframe_concat = dtframe_concat.reindex(new_index)
+    x += 1
+    graph_barh = pd.concat([graph_barh,dtframe_concat], axis=1)
+
+colores={'jr':'#674ea7','ssr':'#ea2f2f','sr':'#ffa500'}
+graph_barh = graph_barh.transpose()
+graph_barh.plot(kind="barh",figsize=(15,8),color=colores)
+
+graph_barh.to_excel(analisis1)
+"""
+
+
+""" Analysis - Salary per experience and role """
 
